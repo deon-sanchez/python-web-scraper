@@ -39,7 +39,7 @@ Modify the scraper settings (if necessary) by editing config.py or the relevant 
 Run the scraper
 
 ```bash
-python main.py
+python3 app/main.py
 ```
 
 Check the output. By default, data is saved in the data directory as a CSV or JSON file, depending on your configuration.
