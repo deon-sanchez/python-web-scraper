@@ -1,9 +1,11 @@
 import requests
-from bs4 import BeautifulSoup
 from urllib.parse import urlparse, parse_qs
 import time
+import sys
+from bs4 import BeautifulSoup
 
 def get_product_details_from_url(url):
+    """Extracts product details from a given Best Buy product URL."""
     parsed_url = urlparse(url)
     path_segments = parsed_url.path.strip('/').split('/')
     query_params = parse_qs(parsed_url.query)
@@ -19,25 +21,43 @@ def get_product_details_from_url(url):
         raise ValueError("URL does not match expected Best Buy product URL pattern.")
 
 def check_stock(url, sku_id):
-    headers = {'User-Agent': 'Mozilla/5.0'}
-    response = requests.get(url, headers=headers)
-    soup = BeautifulSoup(response.text, 'html.parser')
+    """Checks if the product is in stock."""
 
-    stock_status_element = soup.find('button', {"data-sku-id": sku_id})
+    headers = {
+        'pragma': 'no-cache',
+        'cache-control': 'no-cache',
+        'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36', 
+        'accept': '*/*',
+        'sec-fetch-site': 'same-origin',
+        'sec-fetch-mode': 'cors',
+        'sec-fetch-dest': 'empty',
+        'referer': url,
+        'accept-language': 'en-US,en;q=0.5'
+    }
     
-    if stock_status_element and "Add to Cart" in stock_status_element.text:
-        return True
-    return False
+    response = requests.get(url, headers=headers)
+    
+    if response.status_code != 200:
+        print(f"An error occurred while checking stock status: {response.status_code} {response.reason}")
+    else:
+        soup = BeautifulSoup(response.text, 'html.parser')
+        stock_status_element = soup.find('button', {"data-sku-id": sku_id})
 
+        return True
+    
 def main():
-    user_url = input("Enter the Best Buy product URL: ")
+    """Main function to monitor product stock status."""
+    if len(sys.argv) > 1:
+        user_url = sys.argv[1]
+    else:
+        user_url = input("Enter the Best Buy product URL: ")
+    
     try:
-        product_details = get_product_details_from_url(user_url)
+        product_details = get_product_details_from_url(user_url, )
         product_url = f"{product_details['base_url']}/site/{product_details['product_name']}/{product_details['product_id']}.p?skuId={product_details['sku_id']}"
 
         print("Monitoring stock status. Press Ctrl+C to stop.")
         
-        # Loop indefinitely until the user stops the script or an item is found in stock.
         while True:
             in_stock = check_stock(product_url, product_details['sku_id'])
 
@@ -45,11 +65,11 @@ def main():
                 print("The item is in stock.")
                 break
             else:
-                print("The item is out of stock or the check failed. Checking again in 10 seconds...")
-                time.sleep(10)  # Wait for 10 seconds before the next check
+                print("The item is out of stock. Checking again in 10 seconds...")
+                time.sleep(10)
 
     except ValueError as e:
-        print(e)
+        print(f"An error occurred while checking stock status")
     except KeyboardInterrupt:
         print("Stopped the stock checker.")
 
